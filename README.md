@@ -50,10 +50,13 @@ For advanced/local setup:
 
 Your Codespace comes pre-configured. Open a terminal and follow the steps in each section below. If you want to run locally, review the "Requirements" section above and follow these same steps in your own environment.
 
-### Step 1: Setup
-- `git checkout step-1-setup` — Check out the initial setup branch.
-- `pnpm install -r` — Install dependencies in all `apps`.
-- `cd apps/contracts-stylus && cargo stylus check` — Verify the Rust contract setup.
+### Step 1: Start the Arbitrum Nitro Devnode
+1. Open a new terminal window in Codespaces.
+2. Start the Nitro devnode:
+   ```sh
+   pnpm --filter contracts-stylus nitro-node
+   ```
+   This will launch a local Arbitrum chain for deploying and testing your contracts.
 
 ### Step 2: Game of Life Stylus Contract
 - `git checkout step-2-stylus-contract` — Switch to the Stylus contract step.
@@ -121,10 +124,10 @@ Nitro comes with the following preloaded account:
 
 Interact with the contracts as a user by choosing a different wallet address from the deployer. Use one of the test accounts below, each with a unique address and private key.
 
-Fund these accounts with ETH from the deployer (master) account. Run this script in your Codespace terminal:
+Fund these accounts with ETH from the deployer (master) account using the following pnpm script:
 
-```bash
-./scripts/funds.sh
+```sh
+pnpm --filter contracts-stylus fund-accounts
 ```
 
 This script sends ETH from the master account to each test account so you can complete transactions during the workshop.
