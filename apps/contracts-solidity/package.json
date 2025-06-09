@@ -24,6 +24,8 @@
   "scripts": {
     "clean": "rm -rf cache out",
     "build": "forge build",
+    "nitro-node": "if [ -x ../nitro-devnode/run-dev-node.sh ]; then (cd ../nitro-devnode && ./run-dev-node.sh); else echo '[ERROR] Nitro devnode not found. Please ensure ../nitro-devnode exists and run-dev-node.sh is present.'; fi",
+    "fund-accounts": "node -e \"require('child_process').execFileSync(require('path').resolve(__dirname, '../../scripts/funds.sh'), { stdio: 'inherit' })\"",
     "anvil": "anvil --chain-id 1337",
     "abi:nft": "jq '.abi' ./out/NFT.sol/NFT.json",
     "deploy:local": "forge create src/NFT.sol:NFT --from 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E  --private-key 0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659  --chain 412346 --rpc-url  http://localhost:8547  --constructor-args 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E",

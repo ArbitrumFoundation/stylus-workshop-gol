@@ -1,7 +1,7 @@
 import Minter from '../components/Minter';
 import { CONTRACT_ADDRESSES } from '../config/contracts';
+import SolidityNFTAbi from '../abi/SolidityNFT.json';
 
-// Use the contract address from centralized constants
 const SOLIDITY_NFT_CONTRACT_ADDRESS = CONTRACT_ADDRESSES.SOLIDITY_NFT;
 
 const SolidityNFTPage = () => {
@@ -14,8 +14,10 @@ const SolidityNFTPage = () => {
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
         <Minter 
+          key={SOLIDITY_NFT_CONTRACT_ADDRESS}
           contractAddress={SOLIDITY_NFT_CONTRACT_ADDRESS} 
           name="Solidity NFT"
+          abi={SolidityNFTAbi}
         />
       </div>
       

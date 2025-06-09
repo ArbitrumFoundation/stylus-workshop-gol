@@ -1,7 +1,7 @@
 import Minter from '../components/Minter';
 import { CONTRACT_ADDRESSES } from '../config/contracts';
+import SolidityStylusNFTAbi from '../abi/SolidityStylusNFT.json';
 
-// Use the contract address from centralized constants
 const SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS = CONTRACT_ADDRESSES.SOLIDITY_AND_STYLUS_NFT;
 
 export default function SolidityStylusNFTPage() {
@@ -14,8 +14,10 @@ export default function SolidityStylusNFTPage() {
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
         <Minter 
+          key={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS}
           contractAddress={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS} 
           name="Solidity + Stylus NFT"
+          abi={SolidityStylusNFTAbi}
         />
       </div>
       

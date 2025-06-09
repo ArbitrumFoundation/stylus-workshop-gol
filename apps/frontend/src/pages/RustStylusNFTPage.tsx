@@ -14,6 +14,7 @@ export default function RustStylusNFTPage() {
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
         <Minter 
+          key={RUST_NFT_CONTRACT_ADDRESS}
           contractAddress={RUST_NFT_CONTRACT_ADDRESS} 
           name="Rust + Stylus NFT"
         />
