@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import GameOfLifeNFTAbi from '../abi/GameOfLifeNFT.json';
+import { generateGameOfLifeSVG } from '../utils/generateGameOfLifeSVG';
 import { useWeb3 } from '../contexts/Web3Context';
 import { localhost } from '../constants';
 
@@ -155,15 +156,36 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name }) => {
                     Your NFTs ({tokenData.length.toString()}):
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tokenData.map(({ id, uri }) => (
-                      <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
-                        <div 
-                          className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
-                          dangerouslySetInnerHTML={{ __html: uri }}
-                        />
-                        <p className="text-white text-center">Token ID: {id.toString()}</p>
-                      </div>
-                    ))}
+                    {tokenData.map(({ id, uri }) => {
+                      let svgHtml = '';
+                      try {
+                        // Try to parse as JSON (Stylus contract)
+                        const params = JSON.parse(uri);
+                        if (
+                          params &&
+                          typeof params.seed === 'number' &&
+                          typeof params.size === 'number' &&
+                          typeof params.generations === 'number' &&
+                          typeof params.cell_size === 'number'
+                        ) {
+                          svgHtml = generateGameOfLifeSVG(params);
+                        } else {
+                          svgHtml = uri;
+                        }
+                      } catch {
+                        // Not JSON (Solidity contract)
+                        svgHtml = uri;
+                      }
+                      return (
+                        <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
+                          <div
+                            className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
+                            dangerouslySetInnerHTML={{ __html: svgHtml }}
+                          />
+                          <p className="text-white text-center">Token ID: {id.toString()}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

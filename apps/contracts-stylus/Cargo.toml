@@ -12,10 +12,10 @@ description = "Stylus workshop example"
 alloy-primitives = { version = "0.7.6", default-features = false }
 alloy-sol-types = "0.8.20"
 mini-alloc = "0.4.2"
-stylus-sdk = { version = "=0.8.4", default-features = false, features = ["mini-alloc"] }
+stylus-sdk = { version = "=0.9.0", default-features = false, features = ["mini-alloc"] }
 hex = "0.4.3"
 dotenv = "0.15.0"
-openzeppelin-stylus = { git = "https://github.com/OpenZeppelin/rust-contracts-stylus.git", branch = "v0.2", features = ["std"] }
+openzeppelin-stylus = "=0.2.0-rc.0"
 
 [dev-dependencies]
 tokio = { version = "1.12.0", features = ["full"] }
@@ -24,7 +24,7 @@ eyre = "0.6.8"
 motsu = "0.2.1"
 toml = "0.8.13"
 
- alloy = { version = "=0.7.3", features = [
+alloy = { version = "=0.7.3", features = [
   "contract",
   "network",
   "providers",
@@ -49,8 +49,8 @@ crate-type = ["lib", "cdylib"]
 path = "src/lib.rs"
 
 [profile.release]
-codegen-units = 1
-strip = true
+debug = false
 lto = true
+opt-level = "z"
+codegen-units = 1
 panic = "abort"
-opt-level = "s"
