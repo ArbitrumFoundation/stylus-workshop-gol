@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import GameOfLifeNFTAbi from '../abi/GameOfLifeNFT.json';
 import { generateGameOfLifeSVG } from '../utils/generateGameOfLifeSVG';
 import { useWeb3 } from '../contexts/Web3Context';
@@ -116,15 +116,40 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name }) => {
       setTokenData([]);
       (0n);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, account, publicClient, fetchUserMints]);
+
+  const svgHtmlArr = useMemo(
+    () =>
+      tokenData.map(({ uri }) => {
+        try {
+          const params = JSON.parse(uri);
+          if (
+            params &&
+            typeof params.seed === 'number' &&
+            typeof params.size === 'number' &&
+            typeof params.generations === 'number' &&
+            typeof params.cell_size === 'number'
+          ) {
+            return generateGameOfLifeSVG(params);
+          } else {
+            return uri;
+          }
+        } catch (error) {
+          if (typeof window !== 'undefined' && (import.meta as any).env && (import.meta as any).env.MODE === 'development') {
+            console.error('Failed to parse JSON for URI:', uri, error);
+          }
+          return uri;
+        }
+      }),
+    [tokenData]
+  );
 
   return (
     <div className="minter-container p-6 max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold text-white mb-2 text-center">Game of Life NFT Minter</h2>
-{name && (
-  <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">{name}</h3>
-) }
+      {name && (
+        <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">{name}</h3>
+      )}
       {!isConnected || !account ? (
         <div className="flex flex-col items-center">
           <p className="text-gray-300 text-center">Please connect your wallet to mint an NFT</p>
@@ -156,39 +181,15 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name }) => {
                     Your NFTs ({tokenData.length.toString()}):
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tokenData.map(({ id, uri }) => {
-                      let svgHtml = '';
-                      try {
-                        // Try to parse as JSON (Stylus contract)
-                        const params = JSON.parse(uri);
-                        if (
-                          params &&
-                          typeof params.seed === 'number' &&
-                          typeof params.size === 'number' &&
-                          typeof params.generations === 'number' &&
-                          typeof params.cell_size === 'number'
-                        ) {
-                          svgHtml = generateGameOfLifeSVG(params);
-                        } else {
-                          svgHtml = uri;
-                        }
-                      } catch (error) {
-                        if (process.env.NODE_ENV === 'development') {
-                          console.error('Failed to parse JSON for URI:', uri, error);
-                        }
-                        // Not JSON (Solidity contract)
-                        svgHtml = uri;
-                      }
-                      return (
-                        <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
-                          <div
-                            className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
-                            dangerouslySetInnerHTML={{ __html: svgHtml }}
-                          />
-                          <p className="text-white text-center">Token ID: {id.toString()}</p>
-                        </div>
-                      );
-                    })}
+                    {tokenData.map(({ id }, i) => (
+                      <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
+                        <div
+                          className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
+                          dangerouslySetInnerHTML={{ __html: svgHtmlArr[i] }}
+                        />
+                        <p className="text-white text-center">Token ID: {id.toString()}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
