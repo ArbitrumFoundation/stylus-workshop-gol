@@ -172,7 +172,10 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name }) => {
                         } else {
                           svgHtml = uri;
                         }
-                      } catch {
+                      } catch (error) {
+                        if (process.env.NODE_ENV === 'development') {
+                          console.error('Failed to parse JSON for URI:', uri, error);
+                        }
                         // Not JSON (Solidity contract)
                         svgHtml = uri;
                       }
