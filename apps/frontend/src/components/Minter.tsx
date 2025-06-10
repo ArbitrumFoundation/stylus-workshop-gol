@@ -141,25 +141,39 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name, abi }) => {
   const svgHtmlArr = useMemo(
     () =>
       tokenData.map(({ uri }) => {
-        try {
-          const params = JSON.parse(uri);
-          if (
-            params &&
-            typeof params.seed === 'number' &&
-            typeof params.size === 'number' &&
-            typeof params.generations === 'number' &&
-            typeof params.cell_size === 'number'
-          ) {
-            return generateGameOfLifeSVG(params);
-          } else {
+        // 1. Handle base64-encoded SVG data URI
+        if (uri.startsWith('data:image/svg+xml;base64,')) {
+          try {
+            const base64 = uri.replace('data:image/svg+xml;base64,', '');
+            const svg = atob(base64);
+            return svg;
+          } catch (e) {
+            console.error('Failed to decode base64 SVG:', uri, e);
             return uri;
           }
-        } catch (error) {
-          if (typeof window !== 'undefined' && (import.meta as any).env && (import.meta as any).env.MODE === 'development') {
-            console.error('Failed to parse JSON for URI:', uri, error);
-          }
-          return uri;
         }
+        // 2. Handle JSON params for Stylus contract
+        if (uri.trim().startsWith('{')) {
+          try {
+            const params = JSON.parse(uri);
+            if (
+              params &&
+              typeof params.seed === 'number' &&
+              typeof params.size === 'number' &&
+              typeof params.generations === 'number' &&
+              typeof params.cell_size === 'number'
+            ) {
+              return generateGameOfLifeSVG(params);
+            }
+          } catch (error) {
+            if (typeof window !== 'undefined' && (import.meta as any).env && (import.meta as any).env.MODE === 'development') {
+              console.error('Failed to parse JSON for URI:', uri, error);
+            }
+            // Fall through to return as raw SVG
+          }
+        }
+        // 3. Assume raw SVG string (Solidity contract)
+        return uri;
       }),
     [tokenData]
   );
