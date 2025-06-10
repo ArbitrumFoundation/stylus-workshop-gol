@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import GameOfLifeNFTAbi from '../abi/GameOfLifeNFT.json';
+import { generateGameOfLifeSVG } from '../utils/generateGameOfLifeSVG';
 import { useWeb3 } from '../contexts/Web3Context';
 import { localhost } from '../constants';
 
@@ -135,14 +136,54 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name, abi }) => {
       setTokenData([]);
       (0n);
     }
-  }, [isConnected, account, publicClient, fetchUserMints, contractAddress, abi]);
+  }, [isConnected, account, publicClient, fetchUserMints]);
+
+  const svgHtmlArr = useMemo(
+    () =>
+      tokenData.map(({ uri }) => {
+        // 1. Handle base64-encoded SVG data URI
+        if (uri.startsWith('data:image/svg+xml;base64,')) {
+          try {
+            const base64 = uri.replace('data:image/svg+xml;base64,', '');
+            const svg = atob(base64);
+            return svg;
+          } catch (e) {
+            console.error('Failed to decode base64 SVG:', uri, e);
+            return uri;
+          }
+        }
+        // 2. Handle JSON params for Stylus contract
+        if (uri.trim().startsWith('{')) {
+          try {
+            const params = JSON.parse(uri);
+            if (
+              params &&
+              typeof params.seed === 'number' &&
+              typeof params.size === 'number' &&
+              typeof params.generations === 'number' &&
+              typeof params.cell_size === 'number'
+            ) {
+              return generateGameOfLifeSVG(params);
+            }
+          } catch (error) {
+            if (typeof window !== 'undefined' && (import.meta as any).env && (import.meta as any).env.MODE === 'development') {
+              console.error('Failed to parse JSON for URI:', uri, error);
+            }
+            // Fall through to return as raw SVG
+          }
+        }
+        // 3. Assume raw SVG string (Solidity contract)
+        return uri;
+      }),
+    [tokenData]
+  );
 
   return (
     <div className="minter-container p-6 max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold text-white mb-2 text-center">Game of Life NFT Minter</h2>
-{name && (
-  <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">{name}</h3>
-) }
+      {name && (
+        <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">{name}</h3>
+      )}
       {!isConnected || !account ? (
         <div className="flex flex-col items-center">
           <p className="text-gray-300 text-center">Please connect your wallet to mint an NFT</p>
@@ -174,11 +215,11 @@ const Minter: React.FC<MinterProps> = ({ contractAddress, name, abi }) => {
                     Your NFTs ({tokenData.length.toString()}):
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tokenData.map(({ id, uri }) => (
+                    {tokenData.map(({ id }, i) => (
                       <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
-                        <div 
+                        <div
                           className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
-                          dangerouslySetInnerHTML={{ __html: uri }}
+                          dangerouslySetInnerHTML={{ __html: svgHtmlArr[i] }}
                         />
                         <p className="text-white text-center">Token ID: {id.toString()}</p>
                       </div>
