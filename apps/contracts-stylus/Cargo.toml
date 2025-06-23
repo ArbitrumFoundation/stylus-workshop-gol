@@ -9,20 +9,15 @@ keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Stylus workshop example"
 
 [dependencies]
-alloy-primitives = { version = "0.7.6", default-features = false }
-alloy-sol-types = "0.8.20"
-mini-alloc = "0.4.2"
-stylus-sdk = { version = "=0.9.0", default-features = false, features = ["mini-alloc"] }
-hex = "0.4.3"
-dotenv = "0.15.0"
-openzeppelin-stylus = "=0.2.0-rc.0"
+stylus-sdk = { version = "=0.9.0", default-features = false }
+mini-alloc = { version = "=0.4.2", default-features = false }
+openzeppelin-stylus = { git = "https://github.com/OpenZeppelin/rust-contracts-stylus", tag = "v0.2.0", default-features = false }
+
+alloy-primitives = { version = "=0.8.20", default-features = false, features = ["tiny-keccak"] }
+alloy-sol-types = { version = "=0.8.20", default-features = false }
 
 [dev-dependencies]
-tokio = { version = "1.12.0", features = ["full"] }
-ethers = "2.0"
-eyre = "0.6.8"
 motsu = "0.2.1"
-toml = "0.8.13"
 
 alloy = { version = "=0.7.3", features = [
   "contract",
@@ -33,12 +28,10 @@ alloy = { version = "=0.7.3", features = [
   "rpc-types-eth",
   "signer-local",
   "getrandom",
- ] }
-regex = "1.11.1"
+] }
 
 [features]
-export-abi = ["stylus-sdk/export-abi"]
-debug      = ["stylus-sdk/debug"]
+export-abi = ["stylus-sdk/export-abi", "openzeppelin-stylus/export-abi"]
 
 [[bin]]
 name = "genft"
@@ -49,8 +42,12 @@ crate-type = ["lib", "cdylib"]
 path = "src/lib.rs"
 
 [profile.release]
-debug = false
-lto = true
-opt-level = "z"
 codegen-units = 1
 panic = "abort"
+opt-level = "z"
+strip = true
+lto = true
+debug = false
+rpath = false
+debug-assertions = false
+incremental = false
