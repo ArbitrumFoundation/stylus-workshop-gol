@@ -12,7 +12,7 @@
   via_ir = true
   out = "out"
   script = "script"
-  solc = "0.8.25"
+  solc = "0.8.33"
   src = "src"
   test = "test"
 
