@@ -14,7 +14,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.0",
-    "viem": "^2.29.4"
+    "viem": "^2.46.1"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
