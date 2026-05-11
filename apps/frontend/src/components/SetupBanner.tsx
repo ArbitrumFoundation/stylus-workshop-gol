@@ -1,19 +1,10 @@
 import { CONTRACT_ADDRESSES } from '../config/contracts';
-import { RPC_URL } from '../constants';
 
 // Visible warning banner when the .env.local config is incomplete.
-// Without this, missing config presents as opaque "Failed to fetch"
-// errors on every eth_* call (browser hits localhost:8547 in
-// Codespaces, or eth_getLogs runs against the zero address).
+// Without this, missing config presents as opaque eth_getLogs calls
+// against the zero address that look like RPC errors.
 export default function SetupBanner() {
   const missing: { var: string; why: string }[] = [];
-
-  if (RPC_URL === 'http://localhost:8547' && isProbablyCodespace()) {
-    missing.push({
-      var: 'VITE_RPC_URL',
-      why: 'browser inside a Codespace cannot reach localhost:8547 — paste the forwarded :8547 URL from the Ports tab',
-    });
-  }
 
   if (isZero(CONTRACT_ADDRESSES.RUST_NFT)) {
     missing.push({
@@ -59,12 +50,4 @@ export default function SetupBanner() {
 
 function isZero(addr: string): boolean {
   return addr.toLowerCase() === '0x0000000000000000000000000000000000000000';
-}
-
-function isProbablyCodespace(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.location.hostname.endsWith('.app.github.dev') ||
-    window.location.hostname.endsWith('.github.dev')
-  );
 }

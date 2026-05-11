@@ -76,19 +76,19 @@ STYLUS_NFT_ADDRESS=0xRUST_ADDR \
 # Tell the frontend where the contracts live.
 cp apps/frontend/.env.example apps/frontend/.env.local
 # … paste the three addresses into apps/frontend/.env.local …
-# In Codespaces, also set VITE_RPC_URL to the forwarded :8547 URL.
 
 pnpm --filter frontend dev
-# => http://localhost:5173
+# => http://localhost:5173 (locally) or the forwarded :5173 URL in Codespaces
 ```
 
-> **Codespaces RPC URL:** the browser inside a Codespace cannot reach
-> `http://localhost:8547` directly. Open the Ports tab, find the
-> forwarded entry for `8547`, set its visibility to **Public**, copy
-> the `https://<codespace-id>-8547.app.github.dev` URL, and paste it
-> as `VITE_RPC_URL` in `apps/frontend/.env.local`. Wagmi and the
-> chain definition both read this var; without it you'll see
-> `Failed to fetch` on every `eth_*` call.
+> **RPC and CORS:** the frontend talks to the devnode through Vite's
+> dev-server proxy at `/rpc`, which forwards to `http://localhost:8547`
+> in the same network namespace. This works identically locally and
+> in Codespaces, and avoids CORS — the browser only ever fetches from
+> its own origin. You do *not* need to set `VITE_RPC_URL` for local
+> workshop use; only set it when pointing the frontend at a remote
+> chain (testnet, mainnet) or when serving the built bundle without
+> the Vite dev proxy.
 
 ## Getting Started (in Codespaces)
 
