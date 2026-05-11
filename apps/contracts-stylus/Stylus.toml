@@ -1,0 +1,15 @@
+# Marks this crate as a Stylus contract for cargo-stylus 0.10+.
+#
+# cargo-stylus 0.10 requires three sections even for a single-crate project:
+#   [workspace]            top-level marker
+#   [workspace.networks]   named network endpoints (empty == use --endpoint flag)
+#   [contract]             per-contract config; metadata like constructor
+#                          args and deploy targets goes here as the tool
+#                          grows. See:
+#     https://blog.arbitrum.foundation/structuring-multi-contract-stylus-projects-without-pain/
+
+[workspace]
+
+[workspace.networks]
+
+[contract]
