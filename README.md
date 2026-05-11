@@ -46,6 +46,41 @@ For advanced/local setup:
 - `apps/contracts-solidity` – Solidity smart contracts
 - `apps/nitro-devnode` – Local Arbitrum devnode
 
+## Quick start (happy path)
+
+The full local loop, end to end. Each step is also documented in detail below.
+
+```sh
+pnpm install -r
+
+# Terminal 1: leave this running for the whole session.
+pnpm --filter contracts-stylus nitro-node
+
+# Terminal 2:
+pnpm --filter contracts-stylus fund-accounts
+
+# Deploy the Stylus (Rust) NFT.
+pnpm --filter contracts-stylus deploy:local
+# => "deployed code at address: 0xRUST_ADDR"
+
+# Deploy the plain Solidity NFT.
+pnpm --filter contracts-solidity deploy:local
+# => "Deployed to: 0xSOLIDITY_ADDR"
+
+# Deploy the Solidity + Stylus bridge — passes the Stylus address in
+# via STYLUS_NFT_ADDRESS so tokenURI() calls the right contract.
+STYLUS_NFT_ADDRESS=0xRUST_ADDR \
+  pnpm --filter contracts-solidity deploy:local-with-stylus
+# => "Deployed to: 0xBRIDGE_ADDR"
+
+# Tell the frontend where the contracts live.
+cp apps/frontend/.env.example apps/frontend/.env.local
+# … paste the three addresses into apps/frontend/.env.local …
+
+pnpm --filter frontend dev
+# => http://localhost:5173
+```
+
 ## Getting Started (in Codespaces)
 
 Your Codespace comes pre-configured. Open a terminal and follow the steps in each section below. If you want to run locally, review the "Requirements" section above and follow these same steps in your own environment.
@@ -85,10 +120,13 @@ Your Codespace comes pre-configured. Open a terminal and follow the steps in eac
 Use these commands to run the project across different apps:
 
 ### Frontend
-- `pnpm --filter frontend dev` — Start the development server.
-- `pnpm --filter frontend build` — Build for production.
-- `pnpm --filter frontend test` — Run tests.
-- `pnpm --filter frontend lint` — Run linting.
+- `pnpm --filter frontend dev` — Start the development server (http://localhost:5173).
+- `pnpm --filter frontend build` — Type-check + production build.
+- `pnpm --filter frontend test` — Run vitest unit tests.
+- `pnpm --filter frontend test:watch` — Vitest in watch mode.
+- `pnpm --filter frontend lint` — Run ESLint.
+
+Contract addresses are read from Vite env vars. Copy `apps/frontend/.env.example` to `apps/frontend/.env.local` and paste in the addresses output by the deploy scripts.
 
 Configure your wallet with these local network settings:
   - Name: Localhost-Nitro
@@ -169,19 +207,24 @@ This script sends ETH from the master account to each test account so you can co
 
 > **Tip:** Keep deployer and user accounts separate to better understand contract permissions and simulate real dApp usage.
 
-### Contracts
+### Stylus contracts (`apps/contracts-stylus`)
+
 Before you run contract commands, start a local Ethereum node:
-- Clone the devnode: `git clone https://github.com/OffchainLabs/nitro-devnode.git apps/nitro-devnode`
-  - **Codespaces users:** This is handled by the Codespace devcontainer. You don't need to run this command.
-- Start the Nitro node: `./apps/nitro-devnode/run-dev-node.sh`
+- Clone the devnode (skipped automatically by `pnpm install` if missing): `git clone https://github.com/OffchainLabs/nitro-devnode.git apps/nitro-devnode`
+  - **Codespaces users:** the Codespace devcontainer handles this.
+- Start the Nitro node: `pnpm --filter contracts-stylus nitro-node`
 
-After starting the node, run these commands:
-- `pnpm --filter contracts-stylus check` — Verify and compile the contract.
-- `pnpm --filter contracts-stylus test` — Run the contract tests.
-- `pnpm --filter contracts-stylus test:integration` — Run contract integration tests.
-- `pnpm --filter contracts-stylus deploy:local` — Deploy the contract to the local network.
+After the node is running:
+- `pnpm --filter contracts-stylus check` — Run `cargo stylus check`. Requires `Stylus.toml` (already in the repo).
+- `pnpm --filter contracts-stylus test` — Run the motsu-based unit tests (`cargo test --lib`). No devnode needed.
+- `pnpm --filter contracts-stylus test:integration` — Deploy to the devnode and exercise mint + tokenURI end-to-end.
+- `pnpm --filter contracts-stylus deploy:local` — Deploy the contract. Prints `deployed code at address: 0x…` — paste that into `apps/frontend/.env.local` under `VITE_RUST_NFT_ADDRESS`.
 
-### Contracts-solidity
-- `pnpm --filter contracts-solidity build` — Build the contracts.
-- `pnpm --filter contracts-solidity test` — Run the tests.
-- `pnpm --filter contracts-solidity deploy:local` — Deploy the contract to the local network.
+The crate pins `nightly-2025-08-01` via `rust-toolchain.toml` to match the toolchain OpenZeppelin builds `openzeppelin-stylus 0.3.0` against; `rust-src` and the `wasm32-unknown-unknown` target are added automatically by rustup.
+
+### Solidity contracts (`apps/contracts-solidity`)
+
+- `pnpm --filter contracts-solidity build` — `forge build`.
+- `pnpm --filter contracts-solidity test` — `forge test` (8 tests covering both `NFT` and the `StylusNFT` cross-contract bridge against an in-test mock).
+- `pnpm --filter contracts-solidity deploy:local` — Deploy `NFT`. Prints `Deployed to: 0x…` — paste into `VITE_SOLIDITY_NFT_ADDRESS`.
+- `STYLUS_NFT_ADDRESS=0x<rust-addr> pnpm --filter contracts-solidity deploy:local-with-stylus` — Deploy the `StylusNFT` bridge. The Stylus contract address is now a constructor argument (no more hardcoded constants); the script fails fast if you forget to set it. Paste the resulting address into `VITE_SOLIDITY_AND_STYLUS_NFT_ADDRESS`.
