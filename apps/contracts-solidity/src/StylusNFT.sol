@@ -3,35 +3,49 @@ pragma solidity ^0.8.25;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
+/// @notice Minimal slice of the Stylus Game-of-Life contract this bridge
+/// calls. Implemented in Rust on Arbitrum Stylus; see apps/contracts-stylus.
 interface IGameOfLifeNFT {
     function tokenURI(uint256 tokenId) external view returns (string memory);
 }
 
+/// @title Solidity + Stylus NFT bridge
+/// @notice A standard Solidity ERC-721 whose `tokenURI` is delegated to a
+///         Stylus (Rust/WASM) contract that renders Conway's Game of Life
+///         as an inline SVG. The Stylus contract address is injected via
+///         the constructor — never hardcoded — so this contract works
+///         against whatever address the Stylus deployment lands on, on any
+///         chain.
 contract NFT is ERC721, Ownable {
-    using Strings for uint256;
-    // Keep track of all tokens
-    uint256[] private _allTokens;
-    
-    // TODO: Replace with the address of the Rust contract
-    address private constant GAME_OF_LIFE_CONTRACT = 0xA6E41fFD769491a42A6e5Ce453259b93983a22EF;
+    /// @notice Address of the deployed Stylus Game-of-Life contract.
+    address public immutable gameOfLifeContract;
 
-    constructor(address initialOwner) ERC721("MyNFT", "MNFT") Ownable(initialOwner) {}
+    /// @dev Token IDs are 1-indexed and monotonically increasing.
+    uint256 private _nextTokenId;
+
+    error GameOfLifeContractZero();
+
+    constructor(address initialOwner, address gameOfLifeContract_)
+        ERC721("MyNFT", "MNFT")
+        Ownable(initialOwner)
+    {
+        if (gameOfLifeContract_ == address(0)) revert GameOfLifeContractZero();
+        gameOfLifeContract = gameOfLifeContract_;
+    }
 
     function mint() public returns (uint256) {
-        uint256 tokenId = _allTokens.length + 1;
-        _allTokens.push(tokenId);
+        uint256 tokenId = ++_nextTokenId;
         _safeMint(msg.sender, tokenId);
         return tokenId;
     }
 
     function totalSupply() public view returns (uint256) {
-        return _allTokens.length;
+        return _nextTokenId;
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        return IGameOfLifeNFT(GAME_OF_LIFE_CONTRACT).tokenURI(tokenId);
+        _requireOwned(tokenId);
+        return IGameOfLifeNFT(gameOfLifeContract).tokenURI(tokenId);
     }
-
 }
