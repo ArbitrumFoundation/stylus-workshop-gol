@@ -1,3 +1,7 @@
 [toolchain]
-channel = "nightly-2025-06-20"
-components = ["rustfmt", "clippy"]
+# Tracks OpenZeppelin rust-contracts-stylus v0.3.0 / motsu v0.10.0.
+# `rust-src` is required by cargo-stylus to build the contract,
+# and to make `core::intrinsics` calls in transitive deps compile.
+channel = "nightly-2025-08-01"
+components = ["rustfmt", "clippy", "rust-src"]
+targets = ["wasm32-unknown-unknown"]

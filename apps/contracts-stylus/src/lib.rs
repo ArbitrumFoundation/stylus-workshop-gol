@@ -139,16 +139,63 @@ impl GameOfLifeNFT {
 #[cfg(test)]
 mod tests {
     use crate::GameOfLifeNFT;
+    use motsu::prelude::*;
     use openzeppelin_stylus::token::erc721::IErc721;
-    use stylus_sdk::alloy_primitives::{address, uint};
+    use stylus_sdk::alloy_primitives::{uint, Address};
 
     #[motsu::test]
-    fn initial_balance_is_zero(contract: GameOfLifeNFT) {
-        let test_address = address!("1234567891234567891234567891234567891234");
-        let token_id = uint!(10_U256);
+    fn mint_assigns_first_token_to_sender(
+        contract: Contract<GameOfLifeNFT>,
+        alice: Address,
+    ) {
+        contract
+            .sender(alice)
+            .mint()
+            .expect("first mint should succeed");
 
-        let _ = contract.erc721._mint(test_address, token_id);
-        let owner = contract.erc721.owner_of(token_id).unwrap();
-        assert_eq!(owner, test_address);
+        let owner = contract
+            .sender(alice)
+            .erc721
+            .owner_of(uint!(1_U256))
+            .expect("token 1 should be owned");
+        assert_eq!(owner, alice);
+    }
+
+    #[motsu::test]
+    fn token_ids_increment_per_mint(
+        contract: Contract<GameOfLifeNFT>,
+        alice: Address,
+        bob: Address,
+    ) {
+        contract.sender(alice).mint().expect("alice mint");
+        contract.sender(bob).mint().expect("bob mint");
+
+        let first_owner =
+            contract.sender(alice).erc721.owner_of(uint!(1_U256)).unwrap();
+        let second_owner =
+            contract.sender(bob).erc721.owner_of(uint!(2_U256)).unwrap();
+
+        assert_eq!(first_owner, alice);
+        assert_eq!(second_owner, bob);
+    }
+
+    #[motsu::test]
+    fn name_and_symbol(contract: Contract<GameOfLifeNFT>, alice: Address) {
+        assert_eq!(contract.sender(alice).name().unwrap(), "Game of Life");
+        assert_eq!(contract.sender(alice).symbol().unwrap(), "GOL");
+    }
+
+    #[motsu::test]
+    fn token_uri_returns_svg_for_minted_token(
+        contract: Contract<GameOfLifeNFT>,
+        alice: Address,
+    ) {
+        contract.sender(alice).mint().expect("mint");
+        let uri = contract
+            .sender(alice)
+            .token_uri(uint!(1_U256))
+            .expect("tokenURI for minted token");
+        assert!(uri.starts_with("<svg"), "tokenURI should start with <svg");
+        assert!(uri.ends_with("</svg>"), "tokenURI should end with </svg>");
     }
 }
