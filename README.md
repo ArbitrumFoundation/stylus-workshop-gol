@@ -76,10 +76,19 @@ STYLUS_NFT_ADDRESS=0xRUST_ADDR \
 # Tell the frontend where the contracts live.
 cp apps/frontend/.env.example apps/frontend/.env.local
 # … paste the three addresses into apps/frontend/.env.local …
+# In Codespaces, also set VITE_RPC_URL to the forwarded :8547 URL.
 
 pnpm --filter frontend dev
 # => http://localhost:5173
 ```
+
+> **Codespaces RPC URL:** the browser inside a Codespace cannot reach
+> `http://localhost:8547` directly. Open the Ports tab, find the
+> forwarded entry for `8547`, set its visibility to **Public**, copy
+> the `https://<codespace-id>-8547.app.github.dev` URL, and paste it
+> as `VITE_RPC_URL` in `apps/frontend/.env.local`. Wagmi and the
+> chain definition both read this var; without it you'll see
+> `Failed to fetch` on every `eth_*` call.
 
 ## Getting Started (in Codespaces)
 
