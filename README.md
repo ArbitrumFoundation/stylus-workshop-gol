@@ -1,12 +1,19 @@
-# The Power of Stylus: A Rust and Solidity Smart Contract Hands-On Workshop
+# Rust + Stylus Smart Contract Hands-On Workshop
 
 ![cover](./workshop-cover.png)
+
+> **This is the `rust-workshop` branch.** Everything except the
+> Stylus Rust contract is fully implemented and tested. You fill in a
+> couple of well-marked `// TODO` blocks in `apps/contracts-stylus/src/lib.rs`;
+> the rest of the tooling (Solidity contracts, frontend, deploy
+> scripts, devnode, CI) just works. The `master` branch holds the
+> completed reference solution.
 
 ## Welcome & Codespaces Quick Start
 
 > **Run this workshop in GitHub Codespaces.** The Codespace devcontainer includes all dependencies and configurations. Click the button below to launch your Codespace and start building!
 
-[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/master)
+[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/rust-workshop)
 
 **Quick Start:**
 1. Click the "Open in Codespaces" button above.
@@ -19,10 +26,41 @@
 ## What You'll Build
 
 In this hands-on workshop, you will:
-- Implement and compare smart contracts in both Rust (Stylus) and Solidity.
-- Deploy them on a local Arbitrum Nitro devnode.
-- Connect your contracts to a modern React frontend.
-- Build a full dApp using the latest tools and best practices.
+- Implement an ERC-721 NFT contract in Rust on Arbitrum Stylus by completing the storage layout and the `mint` function.
+- Compile your Rust contract to WebAssembly and deploy it to a local Nitro devnode.
+- Watch your Rust contract render an inline-SVG Game of Life as its `tokenURI`.
+- Connect it to the React frontend that's already wired up for you.
+
+## What's intentionally incomplete
+
+Only one file is left for you:
+
+- `apps/contracts-stylus/src/lib.rs` →
+  - The `#[storage]` struct `GameOfLifeNFT` has no fields. You add
+    `#[borrow] pub erc721: Erc721` and `pub token_supply: StorageU256`.
+  - The `mint()` body is `unimplemented!()`. You replace it with the
+    four-line counter-then-`_mint` sequence the inline comment
+    walks through.
+  - A commented-out `tests` module at the bottom of the file gives
+    you the four motsu acceptance tests. Uncomment it once the
+    contract compiles to use them as your check.
+
+Everything else (the SVG-rendering `tokenURI`, name + symbol, the
+Solidity contracts, the deploy scripts, the wagmi-based frontend, the
+test harness) is the same as `master` and is fully functional.
+
+`cargo build --release --target wasm32-unknown-unknown` (the same
+build cargo-stylus runs) will fail on a fresh checkout with
+
+```
+error[E0277]: the trait bound `GameOfLifeNFT: BorrowMut<Erc721>` is not satisfied
+```
+
+which is the compiler telling you the struct still needs the
+`#[borrow] pub erc721: Erc721` field. Once you've added the two
+storage fields and implemented `mint`, the build goes green and the
+motsu tests pass. Run `git diff master..rust-workshop -- apps/contracts-stylus/src/lib.rs`
+if you want to see exactly what's left for you.
 
 ---
 

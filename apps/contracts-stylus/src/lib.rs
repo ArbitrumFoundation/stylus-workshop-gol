@@ -13,19 +13,41 @@ use openzeppelin_stylus::token::erc721::Erc721;
 #[entrypoint]
 #[storage]
 pub struct GameOfLifeNFT {
-    #[borrow]
-    pub erc721: Erc721,
-    pub token_supply: StorageU256,
+    // TODO: Add the two storage fields this contract needs.
+    //
+    //   1. An OpenZeppelin Erc721 implementation. Mark it with
+    //      `#[borrow]` so external calls to its trait methods
+    //      (owner_of, balance_of, transferFrom, …) are routed to it:
+    //
+    //          #[borrow]
+    //          pub erc721: Erc721,
+    //
+    //   2. A persistent token-supply counter so each mint can pick
+    //      a fresh, monotonically increasing id:
+    //
+    //          pub token_supply: StorageU256,
+    //
+    // The accompanying `tests` module at the bottom of this file is
+    // commented out — uncomment it once both fields exist and `mint`
+    // is implemented; the four motsu tests are the workshop's
+    // acceptance test.
 }
 
 #[public]
 #[inherit(Erc721)]
 impl GameOfLifeNFT {
     pub fn mint(&mut self) -> Result<(), Vec<u8>> {
-        let to = self.vm().msg_sender();
-        let token_id = self.token_supply.get() + U256::from(1);
-        self.token_supply.set(token_id);
-        Ok(self.erc721._mint(to, token_id)?)
+        // TODO: Implement mint.
+        //
+        //   1. Read the caller's address with `self.vm().msg_sender()`.
+        //   2. Compute the next id as `token_supply + 1`.
+        //   3. Save the bumped supply with `self.token_supply.set(token_id)`.
+        //   4. Mint with `self.erc721._mint(to, token_id)?` and
+        //      return `Ok(())`.
+        //
+        // After you finish, uncomment the `tests` module at the bottom
+        // of this file and run `pnpm --filter contracts-stylus test`.
+        unimplemented!("Workshop: implement mint")
     }
 
     pub fn name(&self) -> Result<String, Vec<u8>> {
@@ -136,66 +158,82 @@ impl GameOfLifeNFT {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::GameOfLifeNFT;
-    use motsu::prelude::*;
-    use openzeppelin_stylus::token::erc721::IErc721;
-    use stylus_sdk::alloy_primitives::{uint, Address};
-
-    #[motsu::test]
-    fn mint_assigns_first_token_to_sender(
-        contract: Contract<GameOfLifeNFT>,
-        alice: Address,
-    ) {
-        contract
-            .sender(alice)
-            .mint()
-            .expect("first mint should succeed");
-
-        let owner = contract
-            .sender(alice)
-            .erc721
-            .owner_of(uint!(1_U256))
-            .expect("token 1 should be owned");
-        assert_eq!(owner, alice);
-    }
-
-    #[motsu::test]
-    fn token_ids_increment_per_mint(
-        contract: Contract<GameOfLifeNFT>,
-        alice: Address,
-        bob: Address,
-    ) {
-        contract.sender(alice).mint().expect("alice mint");
-        contract.sender(bob).mint().expect("bob mint");
-
-        let first_owner =
-            contract.sender(alice).erc721.owner_of(uint!(1_U256)).unwrap();
-        let second_owner =
-            contract.sender(bob).erc721.owner_of(uint!(2_U256)).unwrap();
-
-        assert_eq!(first_owner, alice);
-        assert_eq!(second_owner, bob);
-    }
-
-    #[motsu::test]
-    fn name_and_symbol(contract: Contract<GameOfLifeNFT>, alice: Address) {
-        assert_eq!(contract.sender(alice).name().unwrap(), "Game of Life");
-        assert_eq!(contract.sender(alice).symbol().unwrap(), "GOL");
-    }
-
-    #[motsu::test]
-    fn token_uri_returns_svg_for_minted_token(
-        contract: Contract<GameOfLifeNFT>,
-        alice: Address,
-    ) {
-        contract.sender(alice).mint().expect("mint");
-        let uri = contract
-            .sender(alice)
-            .token_uri(uint!(1_U256))
-            .expect("tokenURI for minted token");
-        assert!(uri.starts_with("<svg"), "tokenURI should start with <svg");
-        assert!(uri.ends_with("</svg>"), "tokenURI should end with </svg>");
-    }
-}
+// ----------------------------------------------------------------------
+// Workshop tests.
+//
+// Uncomment this whole block after you've filled in the storage fields
+// and the `mint` body above. The four tests below are the acceptance
+// criteria for the workshop:
+//
+//   * `mint_assigns_first_token_to_sender` — the very first mint
+//     produces token id 1 and the sender owns it.
+//   * `token_ids_increment_per_mint`         — id 2 goes to the next minter.
+//   * `name_and_symbol`                       — metadata round-trip.
+//   * `token_uri_returns_svg_for_minted_token` — the SVG body is intact.
+//
+// Run with: `pnpm --filter contracts-stylus test`.
+// ----------------------------------------------------------------------
+//
+// #[cfg(test)]
+// mod tests {
+//     use crate::GameOfLifeNFT;
+//     use motsu::prelude::*;
+//     use openzeppelin_stylus::token::erc721::IErc721;
+//     use stylus_sdk::alloy_primitives::{uint, Address};
+//
+//     #[motsu::test]
+//     fn mint_assigns_first_token_to_sender(
+//         contract: Contract<GameOfLifeNFT>,
+//         alice: Address,
+//     ) {
+//         contract
+//             .sender(alice)
+//             .mint()
+//             .expect("first mint should succeed");
+//
+//         let owner = contract
+//             .sender(alice)
+//             .erc721
+//             .owner_of(uint!(1_U256))
+//             .expect("token 1 should be owned");
+//         assert_eq!(owner, alice);
+//     }
+//
+//     #[motsu::test]
+//     fn token_ids_increment_per_mint(
+//         contract: Contract<GameOfLifeNFT>,
+//         alice: Address,
+//         bob: Address,
+//     ) {
+//         contract.sender(alice).mint().expect("alice mint");
+//         contract.sender(bob).mint().expect("bob mint");
+//
+//         let first_owner =
+//             contract.sender(alice).erc721.owner_of(uint!(1_U256)).unwrap();
+//         let second_owner =
+//             contract.sender(bob).erc721.owner_of(uint!(2_U256)).unwrap();
+//
+//         assert_eq!(first_owner, alice);
+//         assert_eq!(second_owner, bob);
+//     }
+//
+//     #[motsu::test]
+//     fn name_and_symbol(contract: Contract<GameOfLifeNFT>, alice: Address) {
+//         assert_eq!(contract.sender(alice).name().unwrap(), "Game of Life");
+//         assert_eq!(contract.sender(alice).symbol().unwrap(), "GOL");
+//     }
+//
+//     #[motsu::test]
+//     fn token_uri_returns_svg_for_minted_token(
+//         contract: Contract<GameOfLifeNFT>,
+//         alice: Address,
+//     ) {
+//         contract.sender(alice).mint().expect("mint");
+//         let uri = contract
+//             .sender(alice)
+//             .token_uri(uint!(1_U256))
+//             .expect("tokenURI for minted token");
+//         assert!(uri.starts_with("<svg"), "tokenURI should start with <svg");
+//         assert!(uri.ends_with("</svg>"), "tokenURI should end with </svg>");
+//     }
+// }
