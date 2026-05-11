@@ -45,7 +45,16 @@ contract NFT is ERC721, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        _requireOwned(tokenId);
-        return IGameOfLifeNFT(gameOfLifeContract).tokenURI(tokenId);
+        // TODO: Make this Solidity contract delegate metadata generation
+        //       to the Stylus (Rust/WASM) contract at `gameOfLifeContract`.
+        //
+        //   1. Guard with `_requireOwned(tokenId)` so unknown ids revert
+        //      with ERC721NonexistentToken instead of falling through to
+        //      the cross-contract call.
+        //   2. Cast `gameOfLifeContract` to `IGameOfLifeNFT` and call its
+        //      `tokenURI(tokenId)`. Return the string it gives back.
+        //
+        // The accompanying tests in test/StylusNFT.t.sol set up a mock
+        // Stylus contract and assert that this function forwards the call.
     }
 }

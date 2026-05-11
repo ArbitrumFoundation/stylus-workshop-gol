@@ -1,12 +1,19 @@
-# The Power of Stylus: A Rust and Solidity Smart Contract Hands-On Workshop
+# Solidity Smart Contract Hands-On Workshop
 
 ![cover](./workshop-cover.png)
+
+> **This is the `solidity-workshop` branch.** Everything except the
+> two Solidity contracts is fully implemented and tested. You fill in
+> a small, well-marked set of `// TODO` blocks; the rest of the
+> tooling (Stylus contracts, frontend, deploy scripts, devnode, tests,
+> CI) just works. The `master` branch holds the completed reference
+> solution.
 
 ## Welcome & Codespaces Quick Start
 
 > **Run this workshop in GitHub Codespaces.** The Codespace devcontainer includes all dependencies and configurations. Click the button below to launch your Codespace and start building!
 
-[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/master)
+[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/solidity-workshop)
 
 **Quick Start:**
 1. Click the "Open in Codespaces" button above.
@@ -19,10 +26,27 @@
 ## What You'll Build
 
 In this hands-on workshop, you will:
-- Implement and compare smart contracts in both Rust (Stylus) and Solidity.
-- Deploy them on a local Arbitrum Nitro devnode.
-- Connect your contracts to a modern React frontend.
-- Build a full dApp using the latest tools and best practices.
+- Implement an ERC-721 NFT contract in Solidity by completing two `// TODO` blocks (`mint`, `totalSupply`).
+- Implement a Solidity ↔ Stylus cross-contract bridge by completing one `// TODO` block (`tokenURI`).
+- Deploy your contracts to a local Arbitrum Nitro devnode.
+- Connect them to the React frontend that's already wired up for you.
+
+## What's intentionally incomplete
+
+Only these three function bodies are left for you:
+
+- `apps/contracts-solidity/src/NFT.sol` →
+  - `function mint() public returns (uint256)` body
+  - `function totalSupply() public view returns (uint256)` body
+- `apps/contracts-solidity/src/StylusNFT.sol` →
+  - `function tokenURI(uint256 tokenId)` body
+
+Everything else (the Stylus Rust contract, the deploy scripts, the
+frontend, the test harness) is the same as `master` and is fully
+functional. `forge test` will fail on the tests that exercise the
+three TODO bodies above; that's by design — making them pass is the
+workshop. Run `git diff master..solidity-workshop -- apps/contracts-solidity/src`
+if you want to see exactly what's left for you.
 
 ---
 

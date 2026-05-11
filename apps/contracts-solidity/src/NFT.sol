@@ -14,13 +14,20 @@ contract NFT is ERC721, Ownable {
     constructor(address initialOwner) ERC721("MyNFT", "MNFT") Ownable(initialOwner) {}
 
     function mint() public returns (uint256) {
-        uint256 tokenId = ++_nextTokenId;
-        _safeMint(msg.sender, tokenId);
-        return tokenId;
+        // TODO: Implement minting.
+        //   1. Pre-increment `_nextTokenId` so the first mint produces id 1.
+        //   2. Call `_safeMint(msg.sender, tokenId)` so OpenZeppelin's ERC721
+        //      assigns ownership and emits Transfer.
+        //   3. Return the new token id to the caller.
+        //
+        // The accompanying test in test/NFT.t.sol expects the first mint to
+        // return 1 and ownerOf(1) to equal the caller. Make it pass.
     }
 
     function totalSupply() public view returns (uint256) {
-        return _nextTokenId;
+        // TODO: Return the total number of NFTs ever minted.
+        //   Hint: this is just `_nextTokenId` — IDs are 1-indexed and
+        //   strictly monotonic, so the latest id equals the count.
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
