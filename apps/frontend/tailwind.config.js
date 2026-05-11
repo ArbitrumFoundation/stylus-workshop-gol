@@ -14,7 +14,6 @@ module.exports = {
         'white': '#FFFFFF',
         'nova-orange': '#FF7700',
         'shift-blue': '#1B4ADD',
-        'stylus-pink': '#FF5F9E',
         'stylus-pink': '#E3066E',
         'black': '#000000',
         'primary': {
@@ -41,17 +40,4 @@ module.exports = {
       },
     },
   },
-  variants: {
-    extend: {
-      backgroundColor: ['responsive', 'hover', 'focus', 'active', 'disabled'],
-      textColor: ['responsive', 'hover', 'focus', 'active', 'disabled'],
-      borderColor: ['responsive', 'hover', 'focus', 'active', 'disabled'],
-      opacity: ['responsive', 'hover', 'focus', 'active', 'disabled'],
-      cursor: ['responsive', 'hover', 'focus', 'disabled'],
-    },
-  },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-  ],
 }
