@@ -1,0 +1,7 @@
+[toolchain]
+# Match apps/contracts-stylus/rust-toolchain.toml so both Stylus crates
+# build under the same nightly. cargo-stylus 0.10 requires rust-src and
+# the wasm32 target.
+channel = "nightly-2025-08-01"
+components = ["rustfmt", "clippy", "rust-src"]
+targets = ["wasm32-unknown-unknown"]

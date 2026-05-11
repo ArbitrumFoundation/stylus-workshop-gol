@@ -1,0 +1,8 @@
+# Marks this crate as a Stylus contract for cargo-stylus 0.10+.
+# See apps/contracts-stylus/Stylus.toml for the rationale.
+
+[workspace]
+
+[workspace.networks]
+
+[contract]

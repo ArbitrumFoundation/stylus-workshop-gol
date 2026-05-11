@@ -1,12 +1,22 @@
-# The Power of Stylus: A Rust and Solidity Smart Contract Hands-On Workshop
+# Stylus Counter Hands-On Workshop
 
 ![cover](./workshop-cover.png)
+
+> **This is the `stylus-workshop` branch.** Everything except the
+> Counter contract scaffold in `apps/contracts-counter/` is fully
+> implemented and tested. You fill in a small set of `// TODO`
+> blocks in `apps/contracts-counter/src/lib.rs`; the rest of the
+> tooling (the Game-of-Life NFT in Rust + Solidity, the
+> wagmi-based frontend, deploy scripts, devnode, CI) just works.
+> The `master` branch holds the completed reference Game-of-Life
+> dApp; `apps/contracts-counter/reference/lib.rs` holds the
+> completed reference Counter.
 
 ## Welcome & Codespaces Quick Start
 
 > **Run this workshop in GitHub Codespaces.** The Codespace devcontainer includes all dependencies and configurations. Click the button below to launch your Codespace and start building!
 
-[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/master)
+[![Open in Codespaces](https://img.shields.io/badge/Open%20in-GitHub%20Codespaces-blue?logo=github&logoColor=white&style=for-the-badge)](https://codespaces.new/ArbitrumFoundation/stylus-workshop-gol/tree/stylus-workshop)
 
 **Quick Start:**
 1. Click the "Open in Codespaces" button above.
@@ -19,13 +29,36 @@
 ## What You'll Build
 
 In this hands-on workshop, you will:
-- Implement and compare smart contracts in both Rust (Stylus) and Solidity.
-- Deploy them on a local Arbitrum Nitro devnode.
-- Connect your contracts to a modern React frontend.
-- Build a full dApp using the latest tools and best practices.
+- Write your first Stylus contract in Rust — a Counter — by filling in
+  the storage struct and a handful of `impl` methods.
+- Deploy it to a local Arbitrum Nitro devnode and interact with it
+  through `cast` via `scripts/counter-cast.sh`.
+- See the same project's fully-implemented Game-of-Life NFT (Rust +
+  Solidity bridge + React/wagmi frontend) as a reference for what a
+  more complete Stylus dApp looks like.
+
+## What's intentionally incomplete
+
+Only this one file is left for you:
+
+- `apps/contracts-counter/src/lib.rs` →
+  - The `sol_storage!` block (currently commented out) defining a
+    single `uint256 number` storage field. Uncomment + complete it.
+  - The `#[public] impl Counter { … }` block (currently commented
+    out) defining `number`, `set_number`, `mul_number`, `add_number`,
+    `increment`, and `add_from_msg_value`. Uncomment + complete each.
+- A completed reference lives at `apps/contracts-counter/reference/lib.rs`
+  for after you take your own pass.
+
+Everything else (the Game-of-Life NFT in Rust + Solidity, the
+StylusNFT bridge, the deploy scripts, the wagmi-based frontend, the
+devnode, the test harness, CI) is the same as `master` and is fully
+functional. `pnpm --filter contracts-counter build` will succeed but
+emit a near-empty (138 byte) WASM until you fill in the contract; the
+in-file `test_counter` test will fail to compile until the storage
+struct exists.
 
 ---
-
 
 ## Requirements
 
@@ -42,13 +75,15 @@ For advanced/local setup:
 ## Project Structure
 
 - `apps/frontend` – React/TypeScript frontend
-- `apps/contracts-stylus` – Rust (Stylus) smart contracts
-- `apps/contracts-solidity` – Solidity smart contracts
+- `apps/contracts-counter` – **Workshop:** Rust Counter contract (scaffold; fill in `src/lib.rs`)
+- `apps/contracts-stylus` – Reference Rust Game-of-Life NFT (already implemented)
+- `apps/contracts-solidity` – Reference Solidity NFT + Stylus bridge (already implemented)
 - `apps/nitro-devnode` – Local Arbitrum devnode
+- `scripts/counter-cast.sh` – Helper for calling `number` / `increment` on your Counter
 
-## Quick start (happy path)
+## Workshop walkthrough
 
-The full local loop, end to end. Each step is also documented in detail below.
+The Counter is the main exercise; the other contracts are reference.
 
 ```sh
 pnpm install -r
@@ -56,24 +91,35 @@ pnpm install -r
 # Terminal 1: leave this running for the whole session.
 pnpm --filter contracts-stylus nitro-node
 
-# Terminal 2:
+# Terminal 2: fund the pre-loaded test wallets.
 pnpm --filter contracts-stylus fund-accounts
 
-# Deploy the Stylus (Rust) NFT.
+# ----- Workshop step: implement the Counter -----
+# Edit apps/contracts-counter/src/lib.rs and:
+#   1. Uncomment + finish the `sol_storage! { … }` block.
+#   2. Uncomment + finish the `#[public] impl Counter { … }` block.
+# A reference solution is at apps/contracts-counter/reference/lib.rs.
+
+pnpm --filter contracts-counter check    # cargo stylus check
+pnpm --filter contracts-counter test     # cargo test --lib
+pnpm --filter contracts-counter deploy:local
+# => "deployed code at address: 0xCOUNTER_ADDR"
+
+# Interact with the counter from the CLI.
+./scripts/counter-cast.sh number    0xCOUNTER_ADDR 0xYOUR_PRIVATE_KEY
+./scripts/counter-cast.sh increment 0xCOUNTER_ADDR 0xYOUR_PRIVATE_KEY
+
+# ----- Reference dApp (already implemented) -----
 pnpm --filter contracts-stylus deploy:local
 # => "deployed code at address: 0xRUST_ADDR"
 
-# Deploy the plain Solidity NFT.
 pnpm --filter contracts-solidity deploy:local
 # => "Deployed to: 0xSOLIDITY_ADDR"
 
-# Deploy the Solidity + Stylus bridge — passes the Stylus address in
-# via STYLUS_NFT_ADDRESS so tokenURI() calls the right contract.
 STYLUS_NFT_ADDRESS=0xRUST_ADDR \
   pnpm --filter contracts-solidity deploy:local-with-stylus
 # => "Deployed to: 0xBRIDGE_ADDR"
 
-# Tell the frontend where the contracts live.
 cp apps/frontend/.env.example apps/frontend/.env.local
 # … paste the three addresses into apps/frontend/.env.local …
 
