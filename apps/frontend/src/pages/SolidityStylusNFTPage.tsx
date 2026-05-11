@@ -1,8 +1,10 @@
+import type { Abi } from 'viem';
 import Minter from '../components/Minter';
 import { CONTRACT_ADDRESSES } from '../config/contracts';
 import SolidityStylusNFTAbi from '../abi/SolidityStylusNFT.json';
 
 const SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS = CONTRACT_ADDRESSES.SOLIDITY_AND_STYLUS_NFT;
+const SOLIDITY_STYLUS_NFT_ABI = SolidityStylusNFTAbi as Abi;
 
 export default function SolidityStylusNFTPage() {
   return (
@@ -17,7 +19,7 @@ export default function SolidityStylusNFTPage() {
           key={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS}
           contractAddress={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS} 
           name="Solidity + Stylus NFT"
-          abi={SolidityStylusNFTAbi}
+          abi={SOLIDITY_STYLUS_NFT_ABI}
         />
       </div>
       

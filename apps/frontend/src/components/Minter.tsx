@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Abi, AbiEvent } from 'viem';
+import { decodeEventLog } from 'viem';
+import {
+  useAccount,
+  useConnect,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWatchContractEvent,
+  useWriteContract,
+} from 'wagmi';
 import GameOfLifeNFTAbi from '../abi/GameOfLifeNFT.json';
-import { useWeb3 } from '../contexts/Web3Context';
-import { localhost } from '../constants';
-
 
 interface TokenData {
   id: bigint;
@@ -12,183 +19,238 @@ interface TokenData {
 interface MinterProps {
   contractAddress: string;
   name: string;
-  abi?: any;
+  abi?: Abi;
 }
 
-const Minter: React.FC<MinterProps> = ({ contractAddress, name, abi }) => {
-  const usedAbi = abi || GameOfLifeNFTAbi;
-  const { publicClient, walletClient, address: account, isConnected, connect } = useWeb3();
+const Minter = ({ contractAddress, name, abi }: MinterProps) => {
+  const usedAbi = useMemo<Abi>(
+    () => (abi ?? (GameOfLifeNFTAbi as Abi)),
+    [abi]
+  );
 
-  React.useEffect(() => {
-    if (!isConnected && typeof window !== 'undefined' && (window as any).ethereum) {
-      connect();
-    }
-  }, [isConnected, connect]);
+  const transferEvent = useMemo(
+    () =>
+      usedAbi.find(
+        (item) => item.type === 'event' && item.name === 'Transfer'
+      ) as AbiEvent | undefined,
+    [usedAbi]
+  );
+
+  const { address: account, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const publicClient = usePublicClient();
+
+  const [tokenIds, setTokenIds] = useState<bigint[]>([]);
   const [tokenData, setTokenData] = useState<TokenData[]>([]);
-  
   const [isLoading, setIsLoading] = useState(false);
-  const [isMinting, setIsMinting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
-  const fetchUserMints = useCallback(async () => {
-    if (!publicClient || !account) return;
+  // Eagerly try to connect on first mount if a wallet is already injected
+  // and the user hasn't explicitly disconnected. wagmi's reconnect is
+  // automatic for persisted sessions; this just handles the very first
+  // visit where no session exists yet.
+  useEffect(() => {
+    if (isConnected) return;
+    const injected = connectors.find((c) => c.type === 'injected');
+    if (injected && typeof window !== 'undefined' && window.ethereum) {
+      connect({ connector: injected });
+    }
+  }, [isConnected, connect, connectors]);
+
+  // Reset state when contract changes (route change between RustStylus /
+  // Solidity / Solidity+Stylus pages) or when account flips.
+  useEffect(() => {
+    setTokenIds([]);
+    setTokenData([]);
+    setHistoryError(null);
+  }, [contractAddress, account]);
+
+  // One-shot backfill: every Transfer event into the current account,
+  // from genesis. Live updates come from useWatchContractEvent below.
+  const loadHistory = useCallback(async () => {
+    if (!publicClient || !account || !transferEvent) return;
     if (!contractAddress || contractAddress.length !== 42) {
-      console.error('[Minter] Invalid contract address:', contractAddress);
-      setError('Invalid contract address: ' + contractAddress);
-      setTokenData([]);
+      setHistoryError(`Invalid contract address: ${contractAddress}`);
       return;
     }
-
+    setIsLoading(true);
+    setHistoryError(null);
     try {
-      setIsLoading(true);
-      setError(null);
       const logs = await publicClient.getLogs({
         address: contractAddress as `0x${string}`,
-        event: usedAbi.find((e: any) => e.type === 'event' && e.name === 'Transfer') as any,
+        event: transferEvent,
+        args: { to: account },
         fromBlock: 0n,
         toBlock: 'latest',
       });
-      // Only keep tokens minted to this user
-      const tokenIds = logs
-        .filter((log: any) => log.args && log.args.to && log.args.to.toLowerCase() === account.toLowerCase())
-        .map((log: any) => log.args.tokenId as bigint);
-      
-      if (tokenIds.length === 0) {
-        setTokenData([]);
-        setIsLoading(false);
-        return;
-      }
-      const tokenDataPromises = tokenIds.map(async (id: bigint) => {
-        try {
-          const uri = await publicClient.readContract({
-            address: contractAddress as `0x${string}`,
-            abi: usedAbi,
-            functionName: 'tokenURI',
-            args: [id]
-          });
-          return { id, uri: uri as string };
-        } catch (e) {
-          console.error('[Minter] Error reading tokenURI for', id.toString(), e);
-          return { id, uri: 'ERROR' };
-        }
-      });
-      const tokenDataResults = await Promise.all(tokenDataPromises);
-      setTokenData(tokenDataResults);
-      
-    } catch (error) {
-      console.error('[Minter] Error fetching NFTs:', error);
-      setError('Failed to fetch NFTs: ' + (error instanceof Error ? error.message : String(error)));
-      setTokenData([]);
+      const ids = logs
+        .map((l) => (l.args as { tokenId?: bigint }).tokenId)
+        .filter((id): id is bigint => typeof id === 'bigint');
+      setTokenIds(ids);
+    } catch (err) {
+      console.error('[Minter] getLogs failed', err);
+      setHistoryError(
+        err instanceof Error ? err.message : 'Failed to fetch mint history'
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [account, publicClient, contractAddress, abi]);
-
-  // Mint NFT
-  const handleMint = useCallback(async () => {
-    if (!contractAddress || contractAddress.length !== 42) {
-      setError('Invalid contract address: ' + contractAddress);
-      console.error('[Minter] Invalid contract address:', contractAddress);
-      return;
-    }
-    if (!walletClient || !account) {
-      console.error('[Minter] Not connected to wallet');
-      return;
-    }
-    try {
-      setError(null);
-      setIsMinting(true);
-      try {
-        await Promise.race([
-          walletClient.writeContract({
-            address: contractAddress as `0x${string}`,
-            abi: usedAbi,
-            functionName: 'mint',
-            account: account as `0x${string}`,
-            args: [],
-            chain: localhost
-          }),
-          new Promise((_, reject) => setTimeout(() => {
-            reject(new Error('writeContract timed out after 30s'));
-          }, 30000))
-        ]);
-        console.log('[Minter] Mint transaction sent!');
-      } catch (err) {
-        console.error('[Minter] Error during mint:', err);
-        throw err;
-      }
-      setTimeout(() => fetchUserMints(), 2000);
-    } catch (error) {
-      console.error('[Minter] Mint failed:', error);
-      setError('Mint failed');
-    } finally {
-      setIsMinting(false);
-    }
-  }, [walletClient, account, contractAddress, abi, fetchUserMints]);
+  }, [publicClient, account, contractAddress, transferEvent]);
 
   useEffect(() => {
-    if (isConnected && account && publicClient) {
-      fetchUserMints();
-      const interval = setInterval(fetchUserMints, 10000); // Refresh every 10 seconds
-      return () => clearInterval(interval);
-    } else {
+    void loadHistory();
+  }, [loadHistory]);
+
+  // Subscribe to new Transfer events instead of polling on a timer.
+  useWatchContractEvent({
+    address: contractAddress as `0x${string}`,
+    abi: usedAbi,
+    eventName: 'Transfer',
+    enabled: Boolean(account && contractAddress && transferEvent),
+    onLogs(logs) {
+      if (!account) return;
+      for (const log of logs) {
+        try {
+          const { args } = decodeEventLog({
+            abi: usedAbi,
+            data: log.data,
+            topics: log.topics,
+            eventName: 'Transfer',
+          });
+          const { to, tokenId } = args as unknown as {
+            to: `0x${string}`;
+            tokenId: bigint;
+          };
+          if (to.toLowerCase() === account.toLowerCase()) {
+            setTokenIds((prev) =>
+              prev.includes(tokenId) ? prev : [...prev, tokenId]
+            );
+          }
+        } catch (err) {
+          console.warn('[Minter] failed to decode Transfer log', err);
+        }
+      }
+    },
+  });
+
+  // Resolve tokenURI for each id we know about. Could become a single
+  // useReadContracts batch call later; for now, simple per-id awaits.
+  useEffect(() => {
+    let cancelled = false;
+    if (!publicClient || tokenIds.length === 0) {
       setTokenData([]);
-      (0n);
+      return;
     }
-  }, [isConnected, account, publicClient, fetchUserMints]);
+    (async () => {
+      const data = await Promise.all(
+        tokenIds.map(async (id) => {
+          try {
+            const uri = (await publicClient.readContract({
+              address: contractAddress as `0x${string}`,
+              abi: usedAbi,
+              functionName: 'tokenURI',
+              args: [id],
+            })) as string;
+            return { id, uri };
+          } catch (err) {
+            console.error(
+              `[Minter] readContract(tokenURI, ${id}) failed`,
+              err
+            );
+            return { id, uri: 'ERROR' };
+          }
+        })
+      );
+      if (!cancelled) setTokenData(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenIds, publicClient, contractAddress, usedAbi]);
+
+  // ----- mint -----
+  const { writeContract, data: mintHash, isPending: isMinting, error: mintError } =
+    useWriteContract();
+  const { isLoading: isMintConfirming } = useWaitForTransactionReceipt({
+    hash: mintHash,
+  });
+
+  const handleMint = () => {
+    if (!contractAddress || contractAddress.length !== 42) return;
+    if (!account) return;
+    writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: usedAbi,
+      functionName: 'mint',
+      args: [],
+    });
+  };
 
   return (
     <div className="minter-container p-6 max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-white mb-2 text-center">Game of Life NFT Minter</h2>
+      <h2 className="text-2xl font-bold text-white mb-2 text-center">
+        Game of Life NFT Minter
+      </h2>
       {name && (
-        <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">{name}</h3>
+        <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">
+          {name}
+        </h3>
       )}
       {!isConnected || !account ? (
-        <div className="flex flex-col items-center">
-          <p className="text-gray-300 text-center">Please connect your wallet to mint an NFT</p>
-        </div>
+        <p className="text-gray-300 text-center">
+          Please connect your wallet to mint an NFT
+        </p>
       ) : (
         <div className="space-y-6">
           <div className="flex flex-col items-center">
             <button
               onClick={handleMint}
-              disabled={isMinting || !isConnected}
+              disabled={isMinting || isMintConfirming}
               className={`px-6 py-3 rounded-lg font-medium text-white ${
-                isMinting || !isConnected
+                isMinting || isMintConfirming
                   ? 'bg-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               } transition-colors`}
             >
-              {isMinting ? 'Minting...' : 'Mint NFT'}
+              {isMinting
+                ? 'Confirm in wallet…'
+                : isMintConfirming
+                ? 'Minting…'
+                : 'Mint NFT'}
             </button>
-            {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
+            {mintError && (
+              <p className="mt-2 text-red-400 text-sm">
+                Mint failed: {mintError.message}
+              </p>
+            )}
+            {historyError && (
+              <p className="mt-2 text-red-400 text-sm">{historyError}</p>
+            )}
           </div>
 
           {isLoading ? (
-            <div className="text-center text-gray-400">Loading your NFTs...</div>
-          ) : (
-            <React.Fragment>
-              {tokenData.length > 0 ? (
-                <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">
-                    Your NFTs ({tokenData.length.toString()}):
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tokenData.map(({ id, uri }) => (
-                      <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
-                        <div
-                          className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
-                          dangerouslySetInnerHTML={{ __html: uri }}
-                        />
-                        <p className="text-white text-center">Token ID: {id.toString()}</p>
-                      </div>
-                    ))}
+            <div className="text-center text-gray-400">Loading your NFTs…</div>
+          ) : tokenData.length > 0 ? (
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Your NFTs ({tokenData.length}):
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tokenData.map(({ id, uri }) => (
+                  <div key={id.toString()} className="bg-gray-700 p-4 rounded-lg">
+                    <div
+                      className="aspect-square bg-white rounded mb-2 flex items-center justify-center overflow-hidden p-2"
+                      dangerouslySetInnerHTML={{ __html: uri }}
+                    />
+                    <p className="text-white text-center">
+                      Token ID: {id.toString()}
+                    </p>
                   </div>
-                </div>
-              ) : (
-                <p className="text-gray-400">No NFTs found for your account.</p>
-              )}
-            </React.Fragment>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-400">No NFTs found for your account.</p>
           )}
         </div>
       )}

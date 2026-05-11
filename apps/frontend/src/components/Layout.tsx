@@ -1,8 +1,12 @@
 import { Link, Outlet } from 'react-router-dom';
-import { useWeb3 } from '../contexts/Web3Context';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 export default function Layout() {
-  const { isConnected, address, connect, disconnect } = useWeb3();
+  const { isConnected, address } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  const injectedConnector = connectors.find((c) => c.type === 'injected');
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -13,25 +17,27 @@ export default function Layout() {
             <Link to="/rust-stylus" className="hover:text-blue-400">Rust + Stylus</Link>
             <Link to="/solidity" className="hover:text-blue-400">Solidity</Link>
             <Link to="/solidity-stylus" className="hover:text-blue-400">Solidity + Stylus</Link>
-            {/* Wallet Connect Button */}
-            {isConnected ? (
+            {isConnected && address ? (
               <>
                 <span className="bg-gray-700 rounded px-3 py-1 text-sm font-mono mr-2">
-                  {address && `${address.slice(0, 6)}...${address.slice(-4)}`}
+                  {address.slice(0, 6)}…{address.slice(-4)}
                 </span>
                 <button
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                  onClick={disconnect}
+                  onClick={() => disconnect()}
                 >
                   Disconnect
                 </button>
               </>
             ) : (
               <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                onClick={connect}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded disabled:bg-gray-500 disabled:cursor-not-allowed"
+                disabled={!injectedConnector || isPending}
+                onClick={() =>
+                  injectedConnector && connect({ connector: injectedConnector })
+                }
               >
-                Connect Wallet
+                {isPending ? 'Connecting…' : 'Connect Wallet'}
               </button>
             )}
           </div>

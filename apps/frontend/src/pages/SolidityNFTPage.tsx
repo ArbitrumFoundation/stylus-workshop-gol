@@ -1,8 +1,10 @@
+import type { Abi } from 'viem';
 import Minter from '../components/Minter';
 import { CONTRACT_ADDRESSES } from '../config/contracts';
 import SolidityNFTAbi from '../abi/SolidityNFT.json';
 
 const SOLIDITY_NFT_CONTRACT_ADDRESS = CONTRACT_ADDRESSES.SOLIDITY_NFT;
+const SOLIDITY_NFT_ABI = SolidityNFTAbi as Abi;
 
 const SolidityNFTPage = () => {
   return (
@@ -17,7 +19,7 @@ const SolidityNFTPage = () => {
           key={SOLIDITY_NFT_CONTRACT_ADDRESS}
           contractAddress={SOLIDITY_NFT_CONTRACT_ADDRESS} 
           name="Solidity NFT"
-          abi={SolidityNFTAbi}
+          abi={SOLIDITY_NFT_ABI}
         />
       </div>
       
