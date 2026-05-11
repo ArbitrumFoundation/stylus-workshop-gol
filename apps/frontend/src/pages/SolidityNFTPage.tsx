@@ -15,11 +15,13 @@ const SolidityNFTPage = () => {
       </div>
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
-        <Minter 
+        <Minter
           key={SOLIDITY_NFT_CONTRACT_ADDRESS}
-          contractAddress={SOLIDITY_NFT_CONTRACT_ADDRESS} 
+          contractAddress={SOLIDITY_NFT_CONTRACT_ADDRESS}
           name="Solidity NFT"
           abi={SOLIDITY_NFT_ABI}
+          envVar="VITE_SOLIDITY_NFT_ADDRESS"
+          deployCommand="pnpm --filter contracts-solidity deploy:local"
         />
       </div>
       

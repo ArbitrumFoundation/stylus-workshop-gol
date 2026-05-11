@@ -1,6 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import SetupBanner from './SetupBanner';
 
 export default function Layout() {
   const { isConnected, address } = useAccount();
@@ -11,7 +10,6 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <SetupBanner />
       <nav className="bg-gray-800 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-xl font-bold">NFT Workshop</Link>

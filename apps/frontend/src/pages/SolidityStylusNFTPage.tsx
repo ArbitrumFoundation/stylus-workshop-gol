@@ -15,11 +15,16 @@ export default function SolidityStylusNFTPage() {
       </div>
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
-        <Minter 
+        <Minter
           key={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS}
-          contractAddress={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS} 
+          contractAddress={SOLIDITY_STYLUS_NFT_CONTRACT_ADDRESS}
           name="Solidity + Stylus NFT"
           abi={SOLIDITY_STYLUS_NFT_ABI}
+          envVar="VITE_SOLIDITY_AND_STYLUS_NFT_ADDRESS"
+          deployCommand={
+            'STYLUS_NFT_ADDRESS=<rust-addr> ' +
+            'pnpm --filter contracts-solidity deploy:local-with-stylus'
+          }
         />
       </div>
       

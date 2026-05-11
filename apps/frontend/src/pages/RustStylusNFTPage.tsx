@@ -13,10 +13,12 @@ export default function RustStylusNFTPage() {
       </div>
       
       <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
-        <Minter 
+        <Minter
           key={RUST_NFT_CONTRACT_ADDRESS}
-          contractAddress={RUST_NFT_CONTRACT_ADDRESS} 
+          contractAddress={RUST_NFT_CONTRACT_ADDRESS}
           name="Rust + Stylus NFT"
+          envVar="VITE_RUST_NFT_ADDRESS"
+          deployCommand="pnpm --filter contracts-stylus deploy:local"
         />
       </div>
       

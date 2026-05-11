@@ -20,9 +20,34 @@ interface MinterProps {
   contractAddress: string;
   name: string;
   abi?: Abi;
+  /**
+   * VITE_ env var that supplies `contractAddress`. Used in the
+   * "contract not deployed yet" notice so the user knows which line
+   * of .env.local to fill in.
+   */
+  envVar?: string;
+  /**
+   * Shell command that prints the address to paste into `envVar`.
+   * Shown verbatim in the "contract not deployed yet" notice.
+   */
+  deployCommand?: string;
 }
 
-const Minter = ({ contractAddress, name, abi }: MinterProps) => {
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+function isUnset(addr: string): boolean {
+  return !addr || addr.length !== 42 || addr.toLowerCase() === ZERO_ADDRESS;
+}
+
+const Minter = ({
+  contractAddress,
+  name,
+  abi,
+  envVar,
+  deployCommand,
+}: MinterProps) => {
+  const contractUnset = isUnset(contractAddress);
+
   const usedAbi = useMemo<Abi>(
     () => (abi ?? (GameOfLifeNFTAbi as Abi)),
     [abi]
@@ -69,10 +94,7 @@ const Minter = ({ contractAddress, name, abi }: MinterProps) => {
   // from genesis. Live updates come from useWatchContractEvent below.
   const loadHistory = useCallback(async () => {
     if (!publicClient || !account || !transferEvent) return;
-    if (!contractAddress || contractAddress.length !== 42) {
-      setHistoryError(`Invalid contract address: ${contractAddress}`);
-      return;
-    }
+    if (contractUnset) return;
     setIsLoading(true);
     setHistoryError(null);
     try {
@@ -95,7 +117,7 @@ const Minter = ({ contractAddress, name, abi }: MinterProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, account, contractAddress, transferEvent]);
+  }, [publicClient, account, contractAddress, contractUnset, transferEvent]);
 
   useEffect(() => {
     void loadHistory();
@@ -106,7 +128,7 @@ const Minter = ({ contractAddress, name, abi }: MinterProps) => {
     address: contractAddress as `0x${string}`,
     abi: usedAbi,
     eventName: 'Transfer',
-    enabled: Boolean(account && contractAddress && transferEvent),
+    enabled: Boolean(account && transferEvent && !contractUnset),
     onLogs(logs) {
       if (!account) return;
       for (const log of logs) {
@@ -176,8 +198,7 @@ const Minter = ({ contractAddress, name, abi }: MinterProps) => {
   });
 
   const handleMint = () => {
-    if (!contractAddress || contractAddress.length !== 42) return;
-    if (!account) return;
+    if (contractUnset || !account) return;
     writeContract({
       address: contractAddress as `0x${string}`,
       abi: usedAbi,
@@ -185,6 +206,47 @@ const Minter = ({ contractAddress, name, abi }: MinterProps) => {
       args: [],
     });
   };
+
+  if (contractUnset) {
+    return (
+      <div className="minter-container p-6 max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">
+          Game of Life NFT Minter
+        </h2>
+        {name && (
+          <h3 className="text-lg font-semibold text-blue-300 mb-6 text-center">
+            {name}
+          </h3>
+        )}
+        <div className="bg-yellow-500/10 border border-yellow-500/40 text-yellow-100 p-4 rounded space-y-2">
+          <p className="font-semibold">This contract isn't deployed yet.</p>
+          <p className="text-sm text-yellow-100/90">
+            You can skip this experience and use the other tabs, or deploy
+            this contract to enable it. Each contract is independent —
+            you only need to deploy the ones you want to try.
+          </p>
+          {deployCommand && (
+            <>
+              <p className="text-sm text-yellow-100/90">Deploy with:</p>
+              <pre className="bg-black/30 text-yellow-50 p-2 rounded text-xs overflow-x-auto">
+                {deployCommand}
+              </pre>
+            </>
+          )}
+          {envVar && (
+            <p className="text-sm text-yellow-100/90">
+              Then paste the printed address into{' '}
+              <code className="bg-black/30 px-1 rounded">{envVar}</code> in{' '}
+              <code className="bg-black/30 px-1 rounded">
+                apps/frontend/.env.local
+              </code>
+              . Vite will hot-reload as soon as you save.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="minter-container p-6 max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
